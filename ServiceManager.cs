@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public static class ServiceManager
+public class ServiceManager : IDisposable
 {
     private static readonly Dictionary<Type, object> _services = new Dictionary<Type, object>();
 
@@ -76,6 +76,11 @@ public static class ServiceManager
 
         foreach (var key in keysToRemove)
             _services.Remove(key);
+    }
+
+    public void Dispose()
+    {
+        _services.Clear();
     }
 }
 
