@@ -26,12 +26,17 @@ namespace Core.FileUtil
 
         public static void WriteToPath(string relativePath, string content)
         {
-            File.WriteAllText(GetWriteablePath(relativePath), content);
+            var fullPath = GetWriteablePath(relativePath);
+            var dir = Path.GetDirectoryName(fullPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            File.WriteAllText(fullPath, content);
         }
 
         public static string ReadTextFromPath(string relativePath)
         {
-            return File.ReadAllText(GetWriteablePath(relativePath));
+            var fullPath = GetWriteablePath(relativePath);
+            return File.ReadAllText(fullPath);
         }
 
         public static byte[] ReadBytesFromPath(string relativePath)
