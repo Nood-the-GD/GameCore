@@ -20,9 +20,30 @@ namespace Core.Json
             FileUtility.WriteToPath(fileName, JsonConvert.SerializeObject(obj));
         }
 
-        public static T QuickLoadFromJson<T>(string fileName)
+        public static T QuickLoadFromJson<T>(string fileName) where T : new()
         {
-            return JsonConvert.DeserializeObject<T>(FileUtility.ReadTextFromPath(fileName));
+            var json = FileUtility.ReadTextFromPath(fileName);
+            if (json != null)
+            {
+                return JsonConvert.DeserializeObject<T>(json);
+            }
+            else
+            {
+                return new T();
+            }
+        }
+
+        public static T QuickLoadFromJson<T>(string fileName, T @default) where T : new()
+        {
+            var json = FileUtility.ReadTextFromPath(fileName);
+            if (json != null)
+            {
+                return JsonConvert.DeserializeObject<T>(json);
+            }
+            else
+            {
+                return @default;
+            }
         }
     }
 }

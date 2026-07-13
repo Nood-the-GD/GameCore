@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using UnityEngine;
 
@@ -35,8 +36,12 @@ namespace Core.FileUtil
 
         public static string ReadTextFromPath(string relativePath)
         {
-            var fullPath = GetWriteablePath(relativePath);
-            return File.ReadAllText(fullPath);
+            if (File.Exists(GetWriteablePath(relativePath)))
+            {
+                var fullPath = GetWriteablePath(relativePath);
+                return File.ReadAllText(fullPath);
+            }
+            return String.Empty;
         }
 
         public static byte[] ReadBytesFromPath(string relativePath)
