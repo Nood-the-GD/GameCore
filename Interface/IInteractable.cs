@@ -2,6 +2,6 @@ namespace RobotCafe
 {
     public interface IInteractable
     {
-        void Interact();
+        void Interact(object caller = null);
     }
 }
