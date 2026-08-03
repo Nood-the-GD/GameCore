@@ -2,92 +2,9 @@
 
 Core-level systems that live for the entire app lifetime and are usable from anywhere in the codebase. No MonoBehaviour, no scene object, no manual setup — just call the static API.
 
-## MessageBus
-
-`MessageBus.cs` — global pub/sub for struct-based events. Decouples systems so they don't need direct references to each other.
-
-### API
-- `MessageBus.Subscribe<T>(Action<T> handler)` — register a handler for event type `T` (`T` must be a `struct`).
-- `MessageBus.Unsubscribe<T>(Action<T> handler)` — remove a previously registered handler.
-- `MessageBus.Publish<T>(T message)` — broadcast an event to all subscribers of `T`.
-- `MessageBus.Init()` — clears all subscriptions; call this once on game/app startup, or on domain reload / test reset, to reset the bus to a clean state.
-
-### Usage pattern
-Follow the project's standard MonoBehaviour lifecycle convention: subscribe in `OnEnable`, unsubscribe in `OnDisable`.
-
-```csharp
-public readonly struct OrderCompletedEvent
-{
-    public readonly int OrderId;
-    public OrderCompletedEvent(int orderId) => OrderId = orderId;
-}
-
-private void OnEnable()
-{
-    MessageBus.Subscribe<OrderCompletedEvent>(OnOrderCompleted);
-}
-
-private void OnDisable()
-{
-    MessageBus.Unsubscribe<OrderCompletedEvent>(OnOrderCompleted);
-}
-
-private void OnOrderCompleted(OrderCompletedEvent e)
-{
-    // react to the order
-}
-```
-
-### Behavior / guarantees
-- Event payloads are always `struct` — never `null`.
-- `Subscribe` with a `null` handler logs an error and is ignored, no exception.
-- `Publish`/`Unsubscribe` for an event type with no subscribers is a normal no-op — not an error.
-- Each subscriber is invoked independently inside its own try/catch. A throwing subscriber gets its exception logged via `Debug.LogError` but does not stop delivery to other subscribers.
-
-## ServiceManager
-
-`ServiceManager.cs` — global service locator for controller/presenter **instances**. Lets one Presenter find another (or any cross-cutting service) by interface, without a hard scene reference (`GetComponent`, public field drag-in, etc.).
-
-### API
-- `ServiceManager.Register(instance).As<T>()` — register `instance` under service type `T`. Chainable: `.As<T1>().As<T2>()` registers the same instance under multiple types in one call.
-- `ServiceManager.Register(instance).AsImplementedInterfaces()` — register `instance` under every interface its concrete type implements.
-- `ServiceManager.Unregister(instance).As<T>()` — remove `instance`'s registration for type `T`. Chainable the same way as `Register`.
-- `ServiceManager.Unregister(instance).AsAll()` — remove every registration currently pointing at `instance`.
-- `ServiceManager.Get<T>()` — fetch the registered instance for `T`, or `null` (with a logged error) if nothing is registered.
-- `ServiceManager.TryGet<T>(out T service)` — same lookup without logging, for call sites where a missing service is expected/optional.
-- `ServiceManager.Init()` — clears the registry; call on app startup or test/domain reload reset.
-
-### Usage pattern
-Register by the controller's **interface**, not its concrete type, so callers depend on an abstraction. Follow the project's standard MonoBehaviour lifecycle convention: register in `OnEnable`, unregister in `OnDisable`.
-
-```csharp
-public interface ICameraController
-{
-    void Focus(Vector3 worldPosition);
-}
-
-public interface IZoomable
-{
-    void SetZoom(float size);
-}
-
-private void OnEnable()
-{
-    ServiceManager.Register(this).As<ICameraController>().As<IZoomable>();
-}
-
-private void OnDisable()
-{
-    ServiceManager.Unregister(this).As<ICameraController>().As<IZoomable>();
-}
-```
-
-Other code retrieves it anywhere with `ServiceManager.Get<ICameraController>()` or `ServiceManager.TryGet<ICameraController>(out var camera)`.
-
-### Behavior / guarantees
-- `Register(null)` logs an error; the returned chain is a safe no-op (`.As<T>()`/`.AsImplementedInterfaces()` do nothing further), no exception.
-- `.As<T>()` when the instance doesn't actually implement `T` logs an error and skips just that registration, without breaking the rest of the chain.
-- Re-registering an already-registered type logs a warning and overwrites (last one wins) — never throws.
-- `Unregister(instance).As<T>()` only removes the entry if it still points at that exact instance, so it can't evict a different instance that re-registered under that type later.
-- `Get<T>()` for an unregistered type logs an error and returns `null` rather than throwing; use `TryGet<T>` when a missing service shouldn't log.
-- `Init()` clears the registry, mirroring `MessageBus.Init()`.
+## Features
+- [MessageBus](MessageBus.md) — global pub/sub for struct-based events.
+- [ServiceManager](ServiceManager.md) — global service locator for controller/presenter instances.
+- [FileLoader](FileLoader/FileLoader.md) — chainable multi-source async file loader (local / remote / Resources) with per-source retry.
+- [FileUtil](FileUtil/FileUtil.md) — writeable-path file I/O and JSON save/load helpers.
+- [Inventory](Inventory/Inventory.md) — item-count map keyed by `IInventoryItem.Id`.
