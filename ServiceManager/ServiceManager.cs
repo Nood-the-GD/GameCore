@@ -9,8 +9,12 @@ public class ServiceManager : IDisposable
     public static ServiceRegistration Register(object instance)
     {
         if (instance == null)
+        {
             Debug.LogError("[ServiceManager] Register called with a null instance.");
+            return new ServiceRegistration(instance);
+        }
 
+        Add(instance.GetType(), instance);
         return new ServiceRegistration(instance);
     }
 
