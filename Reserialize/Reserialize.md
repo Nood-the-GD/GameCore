@@ -6,6 +6,12 @@
 - `[Reserialize]` — attribute to tag a class (e.g. a `MonoBehaviour`/`ScriptableObject` whose serialized field was renamed).
 - `ReserializeEditor.Reserialize()` — menu item `Tools/Reserialize`; also runs automatically on every domain reload via `[InitializeOnLoadMethod]`.
 
+## How to use (renaming a serialized field)
+1. Before renaming, add `[FormerlySerializedAs("oldName")]` (`UnityEngine.Serialization`) to the field, then rename it — this is what lets Unity remap the existing YAML data to the new name.
+2. Add `[Reserialize]` on top of the containing class.
+3. Trigger `Tools/Reserialize` (or just let Unity reload the domain, since it also runs on `[InitializeOnLoadMethod]`) to force every referencing scene/prefab/asset to rewrite with the new field name.
+4. Once reserialized, `[FormerlySerializedAs]` is safe to delete — the YAML now stores the new name directly.
+
 ## Behavior / guarantees
 - Editor-only (`#if UNITY_EDITOR`) — no runtime/build cost.
 - Scans all loaded assemblies for classes marked `[Reserialize]`, resolves each to its script asset GUID, then uses [Utility](../Utility/Utility.md)'s `GrepExtension.Grep` to find every `.unity`/`.asset` file under `Assets/_Project` referencing that GUID, and force-reserializes the matches (`AssetDatabase.ForceReserializeAssets`).
