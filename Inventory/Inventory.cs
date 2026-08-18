@@ -10,6 +10,14 @@ public class Inventory
 
     public Dictionary<IInventoryItem, int> ItemDict => _inventory;
 
+    private InventorySO _inventorySO;
+
+    public void SetInventorySO(InventorySO inventorySO)
+    {
+        _inventorySO = inventorySO;
+        _inventorySO.inventory = this;
+    }
+
     public void Add(IInventoryItem data, int amount = 1)
     {
         _inventory.TryGetValue(data, out int current);
