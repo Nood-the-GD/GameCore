@@ -9,13 +9,15 @@ namespace Core.UI
         Overlay
     }
 
-    public interface IUIDocumentController<T> : IUIDocumentController  where T : struct
+    public interface IUIDocumentController<T> : IUIDocumentController
     {
         public UIType UIType { get; }
         public UIDocument UIDocument { get; }
         public void Show(T data);
-        public void Hide();
     }
 
-    public interface IUIDocumentController{}
+    public interface IUIDocumentController
+    {
+        public void Hide();
+    }
 }

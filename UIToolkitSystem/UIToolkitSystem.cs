@@ -8,7 +8,7 @@ namespace Core.UI
 {
     public class UIToolkitSystem : MonoBehaviour
     {
-        [SerializeField] private SerializedDictionary<UIType, PanelSettings> _uiPanelSettingDict = new();        
+        [SerializeField] private SerializedDictionary<UIType, PanelSettings> _uiPanelSettingDict = new();
 
         private Dictionary<string, IUIDocumentController> _loadedUI = new();
 
@@ -44,6 +44,19 @@ namespace Core.UI
                 // LoadUI<EmptyUIData>("ErrorPopup", default).Forget();
             }
             return null;
+        }
+
+        public async void UnloadUI(string uiName)
+        {
+            if (_loadedUI.ContainsKey(uiName))
+            {
+                var ui = _loadedUI[uiName];
+                ui.Hide();
+            }
+            else
+            {
+                Debug.LogError($"Can't find ui {uiName} to close");
+            }
         }
     }
 }
