@@ -18,6 +18,13 @@ public class ServiceManager : IDisposable
         return new ServiceRegistration(instance);
     }
 
+    public static ServiceRegistration Register<T>() where T : new()
+    {
+        var instance = new T();
+        return Register(instance);
+    }
+
+
     public static ServiceUnregistration Unregister(object instance)
     {
         return new ServiceUnregistration(instance);

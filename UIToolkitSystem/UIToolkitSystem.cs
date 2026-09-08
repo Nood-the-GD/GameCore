@@ -35,6 +35,7 @@ namespace Core.UI
                     controller.Show(uiData);
                     _loadedUI[uiName] = controller;
                     controller.UIDocument.panelSettings = _uiPanelSettingDict[controller.UIType];
+                    UIClickSound.Bind(controller.UIDocument.rootVisualElement);
                     return controller;
                 }
             }
