@@ -20,3 +20,5 @@ MonoBehaviour:
       Value: 1
     - Key: Module_StoreObject
       Value: 1
+    - Key: Module_Sound
+      Value: 1

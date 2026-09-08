@@ -8,5 +8,7 @@ namespace Core.UI
         public static string PlacementConfirmUI = "PlacementConfirmUI";
         public static string TopBarUI = "TopBarUI";
         public static string MenuUI = "MenuUI";
+        public static string RobotDetailUI = "RobotDetailUI";
+        public static string ItemPickerUI = "ItemPickerUI";
     }
 }

@@ -10,4 +10,5 @@ Core-level systems that live for the entire app lifetime and are usable from any
 - [Inventory](Inventory/Inventory.md) — item-count map keyed by `IInventoryItem.Id`.
 - [Reserialize](Reserialize/Reserialize.md) — Editor tool to force-reserialize assets referencing `[Reserialize]`-tagged scripts after a field rename.
 - [GDKSymbol](GDKSymbol/GDKSymbol.md) — per-namespace toggleable `Debug.Log` wrapper generator; inactive namespaces compile to a no-op.
-- [Utility](Utility/Utility.md) — static file-search helpers (currently just `GrepExtension.Grep`).
+- [Sound](Sound/Sound.md) — `SoundManager` service + `SoundDatabase` SO; positional SFX (music path not wired yet), enums generated from the database keys.
+- [Utility](Utility/Utility.md) — static helpers: `GrepExtension.Grep` (file search) and `Core.Extension` random-element extension methods.

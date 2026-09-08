@@ -1,9 +1,19 @@
 using System;
 using System.IO;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Core.FileUtil
 {
+    public enum FileType
+    {
+        Script,
+        Prefab,
+        ScriptableObject,
+    }
+
     public class FileUtility
     {
         /// <summary>
@@ -20,11 +30,41 @@ namespace Core.FileUtil
 #endif
         }
 
+        public static string GetFilePath(string fileName, FileType type)
+        {
+#if UNITY_EDITOR
+            var assets = AssetDatabase.FindAssetGUIDs($"t:{type.ToString()} {fileName}");
+            var path = AssetDatabase.GUIDToAssetPath(assets[0]);
+            return path;
+#endif
+            return "";
+        }
+
         public static string GetDataParentPath(string relativePath)
         {
             return Path.Combine(Directory.GetParent(Application.dataPath).FullName, relativePath);
         }
 
+        /// <summary>
+        /// This method will write to RelativePath start with Assets/
+        /// </summary>
+        /// <param name="relativePath"></param>
+        /// <param name="content"></param>
+        public static void WriteToRelativePath(string relativePath, string content)
+        {
+            var dataPathFolder = Path.GetDirectoryName(Application.dataPath);
+            var finalPath = Path.Combine(dataPathFolder, relativePath);
+            var dir = Path.GetDirectoryName(finalPath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+            File.WriteAllText(relativePath, content);
+        }
+
+        /// <summary>
+        /// This method will write to WriteablePath with relativePath combine
+        /// </summary>
+        /// <param name="relativePath"></param>
+        /// <param name="content"></param>
         public static void WriteToPath(string relativePath, string content)
         {
             var fullPath = GetWriteablePath(relativePath);
