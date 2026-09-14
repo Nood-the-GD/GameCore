@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[ExecuteAlways]
 public class CameraRotate : MonoBehaviour
 {
     [SerializeField] private bool _lockX = true;
