@@ -74,6 +74,16 @@ namespace Core.FileUtil
             File.WriteAllText(fullPath, content);
         }
 
+        public static bool IsFileExist(string relativePath)
+        {
+            var fullPath = GetWriteablePath(relativePath);
+            if (File.Exists(fullPath))
+            {
+                return true;
+            }
+            return false;
+        }
+
         public static string ReadTextFromPath(string relativePath)
         {
             if (File.Exists(GetWriteablePath(relativePath)))

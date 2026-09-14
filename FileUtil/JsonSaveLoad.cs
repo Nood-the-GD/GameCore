@@ -10,7 +10,7 @@ namespace Core.Json
             FileUtility.WriteToPath(savePath, JsonConvert.SerializeObject(obj));
         }
 
-        public static T LoadFromJson<T>(string savePath)
+        public static T LoadFromSavePath<T>(string savePath)
         {
             return JsonConvert.DeserializeObject<T>(FileUtility.ReadTextFromPath(savePath));
         }

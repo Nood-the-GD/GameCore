@@ -1,5 +1,9 @@
 using System;
+using System.Threading.Tasks;
+using Core.FileUtil;
 using Core.Json;
+using Cysharp.Threading.Tasks;
+using Newtonsoft.Json;
 using UnityEngine;
 
 public class MoneyManager
@@ -9,20 +13,30 @@ public class MoneyManager
         public long Money;
     }
 
+    private const string SAVE_PATH = "money_data.json";
+
     public Action<long> OnMoneyChange;
     public long Money => _moneyData.Money;
     private MoneyData _moneyData;
     private int _saveThreshold = 5;
     private int _threshold = 0;
 
-    public static void Init()
+    public static async UniTask Init()
     {
         var moneyManager = new MoneyManager();
         moneyManager._moneyData = new MoneyData();
-        var savedData = JsonSaveLoad.QuickLoadFromJson<MoneyData>("MoneyData", new());
-        if (savedData != null)
+        if (FileUtility.IsFileExist(SAVE_PATH))
         {
-            moneyManager._moneyData = savedData;
+            var savedData = JsonSaveLoad.QuickLoadFromJson<MoneyData>(SAVE_PATH, new());
+            if (savedData != null)
+            {
+                moneyManager._moneyData = savedData;
+            }
+        }
+        else
+        {
+            var json = await SmartAddressable.LoadAsync<TextAsset>("money_data_default");
+            moneyManager._moneyData = JsonConvert.DeserializeObject<MoneyData>(json.text);
         }
 
         ServiceManager.Register(moneyManager).As<MoneyManager>();
@@ -56,12 +70,12 @@ public class MoneyManager
         if (_threshold >= _saveThreshold)
         {
             _threshold = 0;
-            JsonSaveLoad.QuickSaveToJson(_moneyData, "MoneyData");
+            JsonSaveLoad.QuickSaveToJson(_moneyData, SAVE_PATH);
         }
     }
 
     public void ForceSave()
     {
-        JsonSaveLoad.QuickSaveToJson(_moneyData, "MoneyData");
+        JsonSaveLoad.QuickSaveToJson(_moneyData, SAVE_PATH);
     }
 }
