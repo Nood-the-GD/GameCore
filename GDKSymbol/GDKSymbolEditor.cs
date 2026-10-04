@@ -16,6 +16,8 @@ namespace Core.GDKSymbol
     {
         private const string GeneratedFolder = "Assets/_Project/_Asset/Scripts/Core/GDKSymbol/Generated";
         private const string GeneratedFileSuffix = ".GDKDebug.cs";
+        // Project-owned list of namespaces, outside the Core submodule so each project keeps its own.
+        private const string ManifestPath = "Assets/gdksymbol.csc";
 
         private static readonly string[] WrappedMethods = { "Log", "LogWarning", "LogError" };
 
@@ -27,25 +29,62 @@ namespace Core.GDKSymbol
                 Apply((GDKSymbol)target);
         }
 
+        [InitializeOnLoadMethod]
+        private static void RegenerateFromManifest()
+        {
+            // Core's own SoundManager needs Module_Sound, so a fresh project starts with it.
+            if (!File.Exists(ManifestPath))
+                WriteManifest(new List<string> { "Module_Sound" });
+
+            if (GenerateFiles(ReadManifest()))
+                EditorApplication.delayCall += AssetDatabase.Refresh;
+        }
+
         private static void Apply(GDKSymbol symbol)
         {
-            GenerateFiles(symbol);
+            var namespaces = symbol.Entries.Keys.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()).ToList();
+            WriteManifest(namespaces);
+            GenerateFiles(namespaces);
             AssetDatabase.Refresh();
             SyncDefines(symbol);
         }
 
-        private static void GenerateFiles(GDKSymbol symbol)
+        private static List<string> ReadManifest()
+        {
+            return File.ReadAllLines(ManifestPath)
+                .Select(line => line.Trim())
+                .Where(line => line.Length > 0 && !line.StartsWith("#"))
+                .Distinct()
+                .ToList();
+        }
+
+        private static void WriteManifest(List<string> namespaces)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("# GDKSymbol namespaces for this project. Written by GDKSymbol Apply; read on every Editor reload.");
+            foreach (var nameSpace in namespaces)
+                sb.AppendLine(nameSpace);
+            File.WriteAllText(ManifestPath, sb.ToString());
+        }
+
+        // Returns true when any file was written or deleted, so callers only refresh when needed.
+        private static bool GenerateFiles(List<string> namespaces)
         {
             Directory.CreateDirectory(GeneratedFolder);
 
+            var changed = false;
             var expectedFiles = new HashSet<string>();
-            foreach (var (nameSpace, _) in symbol.Entries)
+            foreach (var nameSpace in namespaces)
             {
-                if (string.IsNullOrWhiteSpace(nameSpace)) continue;
-
                 var fileName = Sanitize(nameSpace) + GeneratedFileSuffix;
                 expectedFiles.Add(fileName);
-                File.WriteAllText(Path.Combine(GeneratedFolder, fileName), GenerateScript(nameSpace));
+
+                var path = Path.Combine(GeneratedFolder, fileName);
+                var script = GenerateScript(nameSpace);
+                if (File.Exists(path) && File.ReadAllText(path) == script) continue;
+
+                File.WriteAllText(path, script);
+                changed = true;
             }
 
             foreach (var existingFile in Directory.GetFiles(GeneratedFolder, "*" + GeneratedFileSuffix))
@@ -55,7 +94,10 @@ namespace Core.GDKSymbol
                 File.Delete(existingFile);
                 if (File.Exists(existingFile + ".meta"))
                     File.Delete(existingFile + ".meta");
+                changed = true;
             }
+
+            return changed;
         }
 
         // Entries drive the scripting define symbols: an enabled entry adds its define so the

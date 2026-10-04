@@ -5,7 +5,7 @@
 ## API
 - `GDKSymbol.Entries` (`SerializedDictionary<string, bool>`, from `AYellowpaper.SerializedCollections`) — namespace → include-in-build, edited directly in the Inspector as a key/value table.
 - "Apply" button (custom inspector):
-  1. regenerates `Core/GDKSymbol/Generated/{NameSpace}.GDKDebug.cs` for every entry, and deletes any previously generated file whose namespace is no longer in the list (`.cs` + `.meta`);
+  1. writes every entry's namespace to `Assets/gdksymbol.csc` (the project-owned manifest, outside the Core submodule), then regenerates `Core/GDKSymbol/Generated/{NameSpace}.GDKDebug.cs` for every entry, and deletes any previously generated file whose namespace is no longer in the list (`.cs` + `.meta`);
   2. syncs the define symbols on **every** non-obsolete `NamedBuildTarget`: adds the define for each enabled entry, removes the define for each disabled/removed entry, and leaves all non-GDK defines (e.g. `DOTWEEN`) untouched.
 
 ## How to use
@@ -18,6 +18,7 @@
 ## Behavior / guarantees
 - **Real strip, not a no-op.** Disabled module → its define is absent → `[Conditional]` makes the compiler drop every `Debug.Log(...)` call to that module, including evaluation of the interpolated message. Enabled module → calls forward to `UnityEngine.Debug.*` with a `[Module_X]` prefix.
 - The generated file is the **same** regardless of the toggle (always `[Conditional]` + a real body); only the define set changes. So a `using` alias to a disabled module still resolves — the class exists, its calls are just erased.
+- On every Editor reload (`[InitializeOnLoadMethod]`), `Generated/` is regenerated from `Assets/gdksymbol.csc` — so pulling Core into another project rebuilds the wrappers that project needs. If the manifest is missing it is created with `Module_Sound` (needed by Core's `SoundManager`). Files are only rewritten when their content differs; defines are **not** touched on reload (only on Apply).
 - Editor-only generation/sync (`#if UNITY_EDITOR`). The generated `Debug` classes are plain runtime C# with no `#if`.
 - Apply is a full resync: every entry's file is rewritten; generated files for namespaces no longer in `Entries` are deleted so stale wrappers can't linger. **Removing an entry also removes its define — remove or update the call sites first, or they won't compile.**
 - Define sync writes to all non-obsolete build targets so device builds and the Editor stay consistent without re-Applying per platform.
