@@ -2,8 +2,12 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+#if GAMECORE_ADDRESSABLES
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+#endif
+
+#if GAMECORE_ADDRESSABLES
 
 public static class SmartAddressable
 {
@@ -140,3 +144,65 @@ public static class SmartAddressable
         _instanceHandles.Clear();
     }
 }
+#else
+// Fallback when com.unity.addressables is not installed: string keys are
+// treated as Resources paths. Label and AssetReference APIs are unavailable.
+public static class SmartAddressable
+{
+    private static readonly Dictionary<string, Object> _keyAssets = new();
+    private static readonly Dictionary<string, int> _keyRefCounts = new();
+
+    public static async UniTask<T> LoadAsync<T>(string key, CancellationToken ct = default)
+    {
+        if (_keyAssets.TryGetValue(key, out var existing))
+        {
+            _keyRefCounts[key]++;
+            return (T)(object)existing;
+        }
+
+        var asset = await Resources.LoadAsync(key, typeof(T)).ToUniTask(cancellationToken: ct);
+        if (asset == null)
+            throw new System.InvalidOperationException($"SmartAddressable: Resources asset '{key}' not found (Addressables package not installed).");
+
+        _keyAssets[key] = asset;
+        _keyRefCounts[key] = 1;
+        return (T)(object)asset;
+    }
+
+    public static void Release(string key)
+    {
+        if (!_keyRefCounts.ContainsKey(key)) return;
+
+        _keyRefCounts[key]--;
+        if (_keyRefCounts[key] > 0) return;
+
+        _keyAssets.Remove(key);
+        _keyRefCounts.Remove(key);
+    }
+
+    public static async UniTask<GameObject> InstantiateAsync(string key, Transform parent = null, CancellationToken ct = default)
+    {
+        var prefab = await LoadAsync<GameObject>(key, ct);
+        return Object.Instantiate(prefab, parent);
+    }
+
+    public static void ReleaseInstance(GameObject instance)
+    {
+        if (instance != null) Object.Destroy(instance);
+    }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void OnRuntimeInit()
+    {
+        ReleaseAll();
+        Application.quitting -= ReleaseAll;
+        Application.quitting += ReleaseAll;
+    }
+
+    public static void ReleaseAll()
+    {
+        _keyAssets.Clear();
+        _keyRefCounts.Clear();
+    }
+}
+#endif
