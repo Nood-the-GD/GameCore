@@ -14,11 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Game.Core::GDKSymbol
   Entries:
     _serializedList:
-    - Key: Module_Robot
-      Value: 1
-    - Key: Module_RobotJob
-      Value: 1
-    - Key: Module_StoreObject
-      Value: 1
     - Key: Module_Sound
       Value: 1

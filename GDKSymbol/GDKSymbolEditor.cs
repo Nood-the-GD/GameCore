@@ -23,7 +23,13 @@ namespace Core.GDKSymbol
 
         public override void OnInspectorGUI()
         {
+            EditorGUI.BeginChangeCheck();
             DrawDefaultInspector();
+            if (EditorGUI.EndChangeCheck())
+            {
+                serializedObject.ApplyModifiedProperties();
+                PruneRemoved((GDKSymbol)target);
+            }
 
             if (GUILayout.Button("Apply"))
                 Apply((GDKSymbol)target);
@@ -47,6 +53,57 @@ namespace Core.GDKSymbol
             GenerateFiles(namespaces);
             AssetDatabase.Refresh();
             SyncDefines(symbol);
+        }
+
+        // Entries deleted from the asset lose their generated script, manifest line and define
+        // right away, without needing Apply. Adding/renaming-in still waits for Apply.
+        private static void PruneRemoved(GDKSymbol symbol)
+        {
+            if (!File.Exists(ManifestPath)) return;
+
+            var current = new HashSet<string>(symbol.Entries.Keys
+                .Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()));
+            var manifest = ReadManifest();
+            var removed = manifest.Where(n => !current.Contains(n)).ToList();
+            if (removed.Count == 0) return;
+
+            var kept = manifest.Where(current.Contains).ToList();
+            WriteManifest(kept);
+            GenerateFiles(kept);
+            AssetDatabase.Refresh();
+            RemoveDefines(new HashSet<string>(removed.Select(Sanitize)));
+        }
+
+        private static void RemoveDefines(HashSet<string> toRemove)
+        {
+            foreach (var buildTarget in AllBuildTargets())
+            {
+                try
+                {
+                    var all = PlayerSettings.GetScriptingDefineSymbols(buildTarget)
+                        .Split(';', StringSplitOptions.RemoveEmptyEntries);
+                    var defines = all.Where(d => !toRemove.Contains(d)).ToArray();
+                    if (defines.Length != all.Length)
+                        PlayerSettings.SetScriptingDefineSymbols(buildTarget, defines);
+                }
+                catch (ArgumentException)
+                {
+                }
+            }
+        }
+
+        // Catches edits that bypass this inspector (text edit, git checkout, undo).
+        private class SymbolAssetPostprocessor : AssetPostprocessor
+        {
+            private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom)
+            {
+                foreach (var path in imported)
+                {
+                    if (!path.EndsWith(".asset")) continue;
+                    if (AssetDatabase.LoadAssetAtPath<GDKSymbol>(path) is { } symbol)
+                        EditorApplication.delayCall += () => PruneRemoved(symbol);
+                }
+            }
         }
 
         private static List<string> ReadManifest()
@@ -173,5 +230,5 @@ namespace Core.GDKSymbol
             return sb.ToString();
         }
     }
-#endif
 }
+#endif
