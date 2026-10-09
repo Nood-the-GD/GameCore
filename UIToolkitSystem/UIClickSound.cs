@@ -16,8 +16,8 @@ namespace Core.UI
         private static void OnClick(ClickEvent evt)
         {
             if (!IsClickable(evt.target as VisualElement)) return;
-            if (ServiceManager.TryGet<SoundManagerService>(out var sound))
-                sound.PlaySound(SoundEnum.UI_Click);
+            // if (ServiceManager.TryGet<SoundManagerService>(out var sound))
+            // sound.PlaySound(SoundEnum.UI_Click);
         }
 
         // The ClickEvent target is the deepest picked element, which may be a Label/Image
