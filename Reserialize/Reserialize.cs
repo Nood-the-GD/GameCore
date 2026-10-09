@@ -78,5 +78,5 @@ namespace Core.Reserialize
         }
     }
 
-}
 #endif
+}
