@@ -14,15 +14,30 @@ namespace Core.SoundManager
         private AudioSource _mainMusicSource;
         private AudioSource _backupMusicSource;
         private AudioListener _audioListener;
+        private MusicEnum _playingMainSound;
+        private float _globalSoundVolume = 1;
+        private float _globalMusicVolume = 1;
+        private bool _loadingDatabase = false;
+
+        public void SetGlobalSoundVolume(float volume)
+        {
+            _globalSoundVolume = volume;
+        }
+        public void SetGlobalMusicVolume(float volume)
+        {
+            _globalMusicVolume = volume;
+        }
 
         public SoundManager()
         {
             LoadDataBaseIfNeed().Forget();
+            SetupSound();
         }
 
         public void SetupSound()
         {
             GameObject soundObject = new GameObject("SoundManager");
+            GameObject.DontDestroyOnLoad(soundObject);
             _mainMusicSource = soundObject.AddComponent<AudioSource>();
             _backupMusicSource = soundObject.AddComponent<AudioSource>();
             _audioListener = GameObject.FindAnyObjectByType<AudioListener>();
@@ -30,14 +45,21 @@ namespace Core.SoundManager
 
         public void ChangeMusic(MusicEnum musicToChange, float duration = 0.5f)
         {
+            if (_playingMainSound == musicToChange)
+            {
+                return;
+            }
+
+            _playingMainSound = musicToChange;
             _backupMusicSource.clip = GetClip(musicToChange);
             float backupVolume = 0;
+            float endVolume = _globalMusicVolume;
             DOTween.To(() => backupVolume, t =>
             {
                 backupVolume = t;
                 _backupMusicSource.volume = backupVolume;
-                _mainMusicSource.volume = 1 - backupVolume;
-            }, 1, duration).OnComplete(() =>
+                _mainMusicSource.volume = endVolume - backupVolume;
+            }, endVolume, duration).OnComplete(() =>
             {
                 _mainMusicSource.clip = GetClip(musicToChange);
                 _mainMusicSource.volume = 1;
@@ -49,29 +71,42 @@ namespace Core.SoundManager
 
         }
 
-        public void PlayMusic(MusicEnum musicEnum)
+        public async void PlayMusic(MusicEnum musicEnum)
         {
+            await UniTask.WaitUntil(() => _loadingDatabase == false);
+            if (_playingMainSound == musicEnum) return;
+
             _mainMusicSource.clip = GetClip(musicEnum);
             _mainMusicSource.volume = 1;
             _mainMusicSource.loop = true;
             _mainMusicSource.Play();
         }
 
-        public void PlaySound(SoundListEnum soundListEnum)
+        public async void PlaySound(SoundListEnum soundListEnum)
         {
+            await UniTask.WaitUntil(() => _loadingDatabase == false);
             var clip = _dataBase.soundListDic[soundListEnum.ToString()].GetRandom();
             Debug.Log("clip: " + clip.name);
-            AudioSource.PlayClipAtPoint(clip, _audioListener.transform.position);
+            if (_audioListener == null)
+            {
+                _audioListener = GameObject.FindAnyObjectByType<AudioListener>();
+            }
+            AudioSource.PlayClipAtPoint(clip, _audioListener.transform.position, _globalSoundVolume);
         }
 
-        public void PlaySound(SoundEnum soundEnum)
+        public async void PlaySound(SoundEnum soundEnum)
         {
-            AudioSource.PlayClipAtPoint(GetClip(soundEnum), _audioListener.transform.position);
+            await UniTask.WaitUntil(() => _loadingDatabase == false);
+            if (_audioListener == null)
+            {
+                _audioListener = GameObject.FindAnyObjectByType<AudioListener>();
+            }
+            AudioSource.PlayClipAtPoint(GetClip(soundEnum), _audioListener.transform.position, _globalSoundVolume);
         }
 
         private AudioClip GetClip(MusicEnum musicEnum)
         {
-            if(_dataBase.musicCipDic.ContainsKey(musicEnum.ToString()))
+            if (_dataBase.musicCipDic.ContainsKey(musicEnum.ToString()))
             {
                 return _dataBase.musicCipDic[musicEnum.ToString()];
             }
@@ -97,9 +132,11 @@ namespace Core.SoundManager
 
         private async UniTask LoadDataBaseIfNeed()
         {
-            if(_dataBase == null)
+            if (_dataBase == null && _loadingDatabase == false)
             {
+                _loadingDatabase = true;
                 _dataBase = await SmartAddressable.LoadAsync<SoundDatabase>("SoundDatabase");
+                _loadingDatabase = false;
             }
         }
     }
