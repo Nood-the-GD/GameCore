@@ -26,6 +26,7 @@ namespace Core.SoundManager
         public void SetGlobalMusicVolume(float volume)
         {
             _globalMusicVolume = volume;
+            _mainMusicSource.volume = volume;
         }
 
         public SoundManager()
@@ -62,7 +63,7 @@ namespace Core.SoundManager
             }, endVolume, duration).OnComplete(() =>
             {
                 _mainMusicSource.clip = GetClip(musicToChange);
-                _mainMusicSource.volume = 1;
+                _mainMusicSource.volume = _globalMusicVolume;
                 _mainMusicSource.time = duration;
                 _mainMusicSource.Play();
                 _backupMusicSource.Stop();
@@ -77,7 +78,7 @@ namespace Core.SoundManager
             if (_playingMainSound == musicEnum) return;
 
             _mainMusicSource.clip = GetClip(musicEnum);
-            _mainMusicSource.volume = 1;
+            _mainMusicSource.volume = _globalMusicVolume;
             _mainMusicSource.loop = true;
             _mainMusicSource.Play();
         }
