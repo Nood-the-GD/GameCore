@@ -76,6 +76,7 @@ namespace Core.SoundManager
         {
             await UniTask.WaitUntil(() => _loadingDatabase == false);
             if (_playingMainSound == musicEnum) return;
+            _playingMainSound = musicEnum;
 
             _mainMusicSource.clip = GetClip(musicEnum);
             _mainMusicSource.volume = _globalMusicVolume;
